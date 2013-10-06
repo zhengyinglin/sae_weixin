@@ -13,9 +13,9 @@ import city
 
 
 #设置代理
-proxy_handler = urllib2.ProxyHandler({"http" : '127.0.0.1:8087'})
-opener = urllib2.build_opener(proxy_handler)
-urllib2.install_opener(opener)
+#proxy_handler = urllib2.ProxyHandler({"http" : '127.0.0.1:8087'})
+#opener = urllib2.build_opener(proxy_handler)
+#urllib2.install_opener(opener)
 
 def weather(cityname):
     try:
