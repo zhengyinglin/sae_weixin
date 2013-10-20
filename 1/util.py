@@ -6,6 +6,9 @@
 import xml.etree.ElementTree  as ET
 import hashlib
 
+class MsgException(Exception):pass
+
+
 def get_signature(token , timestamp , nonce):
     items = [token , timestamp , nonce]
     items.sort()

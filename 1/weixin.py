@@ -3,13 +3,14 @@
 #处理微信逻辑
 
 import time
-from util import get_signature , XMLTagText2Dict , Dict2XMLTagText
+from util import get_signature , XMLTagText2Dict , Dict2XMLTagText , MsgException
 import weather
 
 #simsimi 接口不稳定 换小豆 sae 可以用
 #import simsimi
 import xiaodou
 
+import music , douban
 from  mylog import  log
 
 #1、文本消息
@@ -35,6 +36,7 @@ ResponseMsgxml = ''' <xml>
 HELP='''
 说明：输入内容
 1)查天气：天气 城市名
+2)听音乐：音乐 歌曲名
 2)对话：直接输入文本内容
 3)帮助：help
 4)留意bug递交:bug 你的问题
@@ -51,41 +53,75 @@ ABOUTME='''
   QQ：979762787
   2013-09-01
 '''
-def get_msg(msg):
+MUSIC_MSG = '''\
+1)查音乐： 音乐 + 空格 + 搜索内容\n如：音乐 十年 
+2)音乐FM： ''' + '\n'.join( ['音乐 %s   (%s 频道)' %(k,v) for k , v in douban.FM_CHANNEL.iteritems()] )
+    
+#回复音乐消息
+MusicMsgxml='''<xml>
+<ToUserName><![CDATA[toUser]]></ToUserName>
+<FromUserName><![CDATA[fromUser]]></FromUserName>
+<CreateTime>12345678</CreateTime>
+<MsgType><![CDATA[music]]></MsgType>
+<Music>
+<Title><![CDATA[TITLE]]></Title>
+<Description><![CDATA[DESCRIPTION]]></Description>
+<MusicUrl><![CDATA[MUSIC_Url]]></MusicUrl>
+<HQMusicUrl><![CDATA[HQ_MUSIC_Url]]></HQMusicUrl>
+</Music>
+</xml>'''
+def proc_music(content, resp):
+    log.info('proc_music|%s' , content)
+    func = douban.fm_music if content in douban.FM_CHANNEL else music.getmusics
+    song , singer , ablum , music_url = func(content)
+    resp['MsgType'] = 'music'
+    m = {}
+    m['Title'] = song
+    m['Description'] = singer + ablum
+    m['MusicUrl'] = m['HQMusicUrl'] = music_url
+    resp['Music'] = m
+    
+
+
+def _proc_text(msg, resp):
     if msg in ('help' , 'Help'):
-        return HELP
+        raise MsgException(HELP)
     if msg in ('me' , 'Me'):
-        return ABOUTME
+        raise MsgException(ABOUTME)
     if msg.startswith('bug'):
         log.info('BUG|%s' , msg)
-        return '感谢你的留意 ^_^ '
+        raise MsgException('感谢你的留意 ^_^ ')
     if msg.startswith('天气'):
-        items = msg.split()
+        items = msg.split(None , 1)
         if len(items) == 2:
-            city = items[1]
-            return weather.weather(city)
+            resp['Content'] = weather.weather(items[1].strip())
         else:
-            return '查询天气格式： 天气 + 空格 + 城市名称\n如：天气 潮州'
-    
-    #ss = simsimi.SimSimi.instance()
-    #return ss.chat(msg)
-    return xiaodou.chat(msg)
-        
+            raise MsgException('查询天气格式： 天气 + 空格 + 城市名称\n如：天气 饶平')
+    elif msg.startswith('音乐'):
+        items = msg.split(None , 1)
+        if len(items) == 2:
+            proc_music(items[1].strip(), resp) 
+        else:
+            raise MsgException(MUSIC_MSG)
+    else:
+        resp['Content'] = xiaodou.chat(msg)
 
-def proc_text(req):   
+def proc_text(req):
     resp = {}
     resp['ToUserName'] = req['FromUserName']
     resp['FromUserName'] = req['ToUserName']
     resp['CreateTime'] = int(time.time())
-    resp['MsgType'] = req['MsgType']
-    req_msg = req['Content'].encode('utf-8')
+    resp['MsgType'] = 'text' #默认text
     try:
-        resp['Content'] = get_msg(  req_msg )
-    except Exception , e:
-        log.exception('exception.%s' , str(e))
-        resp['Content'] = 'exception'
+        msg = req['Content'].encode('utf-8')
+        _proc_text(msg , resp)
+    except MsgException , e:
+        resp['MsgType'] = 'text'
+        resp['Content'] = str(e)
+    except Exception:
+        log.exception('exception')
     log.info('textmsg|%s|%s|%s|%s' , req['FromUserName'] ,req['ToUserName'],
-           req_msg, resp['Content']  )
+           msg, resp.get('Content' , '')  )
     return Dict2XMLTagText().toxml(resp)
 
 
@@ -98,7 +134,6 @@ EventMsgxml = '''
 <Event><![CDATA[EVENT]]></Event>
 <EventKey><![CDATA[EVENTKEY]]></EventKey>
 </xml>'''
-
 def proc_event(req):
     event = req['Event']
     if event == 'subscribe':
@@ -115,6 +150,7 @@ def proc_event(req):
     else:
         log.warning('proc_event|nuknown event %s|%s' , event ,req['FromUserName'])
     return   event  
+
 
 def Process(xml_str):
     MsgProcess = {

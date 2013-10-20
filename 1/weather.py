@@ -5,12 +5,10 @@
 #http://g.kehou.com/t1029846752.html
 #    http://www.dreamyshow.com/archives/373
 
-
 import urllib2
 import json
-
 import city
-
+from util import MsgException
 
 #设置代理
 #proxy_handler = urllib2.ProxyHandler({"http" : '127.0.0.1:8087'})
@@ -21,7 +19,7 @@ def weather(cityname):
     try:
         citycode = city.city[cityname]
     except KeyError:
-        return '找不到该城市'
+        raise MsgException('找不到该城市')
     #url = 'http://www.weather.com.cn/data/sk/%s.html' %citycode
     url = 'http://m.weather.com.cn/data/%s.html' %citycode
     req = urllib2.Request(url=url)
