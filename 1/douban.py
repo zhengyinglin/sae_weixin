@@ -7,6 +7,7 @@ import urllib2
 import json
 import random
 from util import MsgException
+from  mylog import  log
 
 #可以从下面获取http://www.douban.com/j/app/radio/channels 
 FM_CHANNEL = {
@@ -28,6 +29,7 @@ URL_FMT = 'http://www.douban.com/j/app/radio/people?app_name=radio_desktop_win&v
 
 def fm_music(channel_id):
     req = urllib2.Request(URL_FMT % channel_id  )
+    log.info(URL_FMT % channel_id )
     string = urllib2.urlopen(req , timeout = 10).read() #utf-8
     s = json.loads(string) # unicode
     if  s['r'] != 0:

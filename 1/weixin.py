@@ -1,7 +1,7 @@
 #coding=utf-8
 #email  979762787@qq.com
 #处理微信逻辑
-
+import urllib
 import time
 from util import get_signature , XMLTagText2Dict , Dict2XMLTagText , MsgException
 import weather
@@ -151,11 +151,65 @@ def proc_event(req):
         log.warning('proc_event|nuknown event %s|%s' , event ,req['FromUserName'])
     return   event  
 
+#位置消息
+'''<xml>
+<ToUserName><![CDATA[toUser]]></ToUserName>
+<FromUserName><![CDATA[fromUser]]></FromUserName>
+<CreateTime>1351776360</CreateTime>
+<MsgType><![CDATA[location]]></MsgType>
+<Location_X>23.134521</Location_X>
+<Location_Y>113.358803</Location_Y>
+<Scale>20</Scale>
+<Label><![CDATA[位置信息]]></Label>
+<MsgId>1234567890123456</MsgId>
+</xml>'''
+#回复图文消息
+'''<xml>
+ <ToUserName><![CDATA[toUser]]></ToUserName>
+ <FromUserName><![CDATA[fromUser]]></FromUserName>
+ <CreateTime>12345678</CreateTime>
+ <MsgType><![CDATA[news]]></MsgType>
+ <ArticleCount>2</ArticleCount>
+ <Articles>
+ <item>
+ <Title><![CDATA[title1]]></Title> 
+ <Description><![CDATA[description1]]></Description>
+ <PicUrl><![CDATA[picurl]]></PicUrl>
+ <Url><![CDATA[url]]></Url>
+ </item>
+ <item>
+ <Title><![CDATA[title]]></Title>
+ <Description><![CDATA[description]]></Description>
+ <PicUrl><![CDATA[picurl]]></PicUrl>
+ <Url><![CDATA[url]]></Url>
+ </item>
+ </Articles>
+ </xml> '''
+def proc_location(req):
+    resp = {}
+    resp['ToUserName'] = req['FromUserName']
+    resp['FromUserName'] = req['ToUserName']
+    resp['CreateTime'] = int(time.time())
+    resp['MsgType'] = 'news'
+    resp['ArticleCount'] = 1
+    art = {}
+    item = {}
+    item['Title'] = '深圳公交'
+    item['Description'] = '公交车路线'
+    item['PicUrl'] = ''
+    latlng = req['Location_X'] + ',' +req['Location_Y']
+    item['Url'] = 'http://1.zylweixin.sinaapp.com/bus?latlng=%s' % urllib.quote(latlng)
+    art['item'] = [item]
+    resp['Articles'] = [art]
+    log.info(Dict2XMLTagText().toxml(resp))
+    return Dict2XMLTagText().toxml(resp)
+
 
 def Process(xml_str):
     MsgProcess = {
         'text':proc_text,
         'event':proc_event,
+        'location':proc_location,
         }
     d = XMLTagText2Dict().parse(xml_str)
     try:

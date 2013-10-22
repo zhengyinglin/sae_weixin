@@ -1,0 +1,42 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/> 
+<title>bus test</title>
+</head>
+<body>
+  <form action="/bus2" method="post">
+   	<label>{{ sname }}</label><p></p>
+   	<table border="1">
+   		<td>车牌</td>
+		<td>距离</td>
+		<td>到站时间</td>
+	{% for item in items %}
+	   {% set dist = int(item['distance']) %}
+	   {% if dist >=100000 %}
+	      {% continue %}
+	   {% end %}
+	<tr>
+		<td>{{ item['name'] }}</td>
+		{% if dist >= 1000 %}
+			<td>{{ u'%.2f Km' % (dist/1000.0) }}</td>
+		{% else %}
+		    <td>{{ u'%d m' % dist }}</td>
+		{% end %}
+		{% set wtime = int(item['waittime']) %}
+		{% if wtime >= 100 %}
+			<td>{{ u'%d 分钟' % ((wtime+59)/60) }}</td>
+		{% else %}
+		    <td>{{ u'%d 秒' % wtime }}</td>
+		{% end %}
+	</tr>
+  	{% end %}
+  	</table>
+
+	<input type="hidden" name="sublineid" value="{{ sublineid }}" />
+	<input type="hidden" name="latlng" value="{{ latlng }}" />
+	<p/><input type="submit" value="刷新"/>
+  </form>
+  
+</body>
+</html>
