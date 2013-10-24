@@ -1,2 +1,7 @@
 name: zylweixin
 version: 1
+
+
+handle:
+- expire: if(path ~ "(.*)\.(js|css|jpg|png|gif|ico)") time 31536000
+- compress: if(out_header["Content-Length"] >= 512) compress
