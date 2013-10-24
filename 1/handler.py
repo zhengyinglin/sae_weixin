@@ -7,6 +7,7 @@ import tornado.options
 from  mylog import  log
 import weixin
 import bus
+import json
 
 class MainHandler(tornado.web.RequestHandler):
     def post(self):
@@ -35,8 +36,7 @@ class HelloHandler(tornado.web.RequestHandler):
 class BusHandler(tornado.web.RequestHandler):
     def get(self):
         latlng = self.get_argument('latlng')
-        self.render("bus.html" , 
-            latlng = latlng)
+        self.render("bus.html" , latlng = latlng)
 
     def post(self):
         bline = self.get_argument('busline')
@@ -44,9 +44,10 @@ class BusHandler(tornado.web.RequestHandler):
         resp = bus.get_bus_url(bline)
         log.info(str(resp))
         if resp["success"] != "true":
-           self.write(resp['msg'])
+            self.render("msg.html" , msg=resp['msg'])
         elif resp['data'][0]['isopen'] == '0':
-           self.write('%s路线暂未开通查询服务' % bline)
+            msg = u'%s路线暂未开通查询服务' % bline
+            self.render("msg.html" , msg=msg)
         else:
             self.render("bus_select.html" , items=resp['data'],
             latlng = latlng)
@@ -55,11 +56,18 @@ class BusHandler2(tornado.web.RequestHandler):
     def post(self):
         subid = self.get_argument('sublineid')
         latlng = self.get_argument('latlng')
-        name , buses = bus.get_busline_info(subid , latlng)
+        sid , stationsinfo , buses = bus.get_busline_info(subid , latlng)
         log.info(str(buses))
-        self.render("bus_info.html" , items=buses, sname=name,
-            sublineid=subid , latlng = latlng)
-        
+        stations = [ '%(id)s,%(name)s' % station  for station in stationsinfo]
+        self.render("bus_info.html" , items=buses, stationid=sid,
+            sublineid=subid , stations = stationsinfo )
+    
+    def get(self):
+        subid = self.get_argument('sublineid')
+        sid = self.get_argument('stationid')
+        buses = bus.get_nearcarinfo(subid, sid)
+        self.write(json.dumps(buses))
+
 ##http://localhost:8888/bus?latlng=22.571984,113.963178
 
 

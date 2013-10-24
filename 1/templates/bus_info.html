@@ -1,42 +1,82 @@
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/> 
-<title>bus test</title>
-</head>
-<body>
-  <form action="/bus2" method="post">
-   	<label>{{ sname }}</label><p></p>
-   	<table border="1">
+{% extends "base.html" %}
+
+{% block title %}查看公交信息{% end %}
+
+{% block body %}
+
+  <label>候车点</label>
+	<select id="option" name="sele">
+    {% for station in stations %}
+      {% if station['id'] == stationid  %}
+  		   <option value ="{{ station['id'] }}" selected="selected">{{ station['name'] }}</option>
+      {% else %}
+         <option value ="{{ station['id'] }}">{{ station['name'] }}</option>
+      {% end %}
+    {% end %}
+	</select>
+   	<p></p>
+   	<table id="bus"  border="1">
+   	  <tr>
    		<td>车牌</td>
 		<td>距离</td>
 		<td>到站时间</td>
-	{% for item in items %}
-	   {% set dist = int(item['distance']) %}
-	   {% if dist >=100000 %}
-	      {% continue %}
-	   {% end %}
-	<tr>
-		<td>{{ item['name'] }}</td>
-		{% if dist >= 1000 %}
-			<td>{{ u'%.2f Km' % (dist/1000.0) }}</td>
-		{% else %}
-		    <td>{{ u'%d m' % dist }}</td>
-		{% end %}
-		{% set wtime = int(item['waittime']) %}
-		{% if wtime >= 100 %}
-			<td>{{ u'%d 分钟' % ((wtime+59)/60) }}</td>
-		{% else %}
-		    <td>{{ u'%d 秒' % wtime }}</td>
-		{% end %}
-	</tr>
-  	{% end %}
+	  </tr>
   	</table>
 
-	<input type="hidden" name="sublineid" value="{{ sublineid }}" />
-	<input type="hidden" name="latlng" value="{{ latlng }}" />
-	<p/><input type="submit" value="刷新"/>
-  </form>
+	<input type="hidden" id="sublineid" name="sublineid" value="{{ sublineid }}" />
+
+  <p></p>
+
+  <button name="mybttn2" onclick="update();">  刷新数据  </button>
   
-</body>
-</html>
+  <script type="text/javascript">
+  //http://stackoverflow.com/questions/14204380/how-to-send-a-url-using-javascrip-ajax
+  //http://www.w3schools.com/xml/xml_parser.asp
+  function update(){
+      xmlhttp=new XMLHttpRequest();
+      xmlhttp.onreadystatechange=function() {
+          if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+          	  var table = document.getElementById("bus")
+          	  var remove_rows = table.getElementsByTagName('tr').length - 1
+          	  for(var i =0 ; i<remove_rows;i++){
+          	  		table.deleteRow(-1)
+          	  }
+              //alert(xmlhttp.responseText)
+          	  var resp = JSON.parse(xmlhttp.responseText)
+          	  for( i in  resp ) {
+
+          	  	  var bus = resp[i]
+          	  	  var dist = parseInt(bus.distance)
+				  if( dist >=100000 )
+				  	  continue
+				  if( dist >= 1000 )
+				  	 dist = Math.round(dist/1000*100)/100 + ' KM'
+                  else
+                  	 dist = dist + 'm'
+				  var wtime = parseInt(bus.waittime)
+				  if( wtime >= 100 )
+				  	  wtime = Math.round(wtime/60) + ' 分钟'
+				  else
+				  	  wtime = wtime + ' 秒'
+
+          	  	  var newTr = table.insertRow(-1)
+          	  	  newTr.insertCell(-1).innerHTML = bus.name
+          	  	  newTr.insertCell(-1).innerHTML = dist 
+          	  	  newTr.insertCell(-1).innerHTML = wtime
+          	  }
+          }
+          else if (xmlhttp.readyState==4 && xmlhttp.status!=200) {
+          	  alert('error' + xmlhttp.status)
+          }
+       
+     }
+     var option = document.getElementById("option")
+     var sublineid = document.getElementById("sublineid")
+     xmlhttp.open("GET","/bus2?sublineid="+ sublineid.value + '&stationid=' + option.value,true);
+     xmlhttp.send();
+ }
+
+ update()
+ </script>
+
+ {% end %}

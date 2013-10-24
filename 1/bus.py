@@ -45,12 +45,17 @@ lng=%s&lat=%s&sublineID=%s&mapType=BAIDU_MAP' %(lng , lat, sublineid)
     #print resp
     station = resp['data']['station']
     sid , name = station['id'] , station['name']
+    stationsinfo = resp["data"]["subline"]["station"]
+    return sid, stationsinfo, get_nearcarinfo(sublineid, sid) 
+
+
+def get_nearcarinfo(sublineid, stationid):
     #查询指定车辆信息
     url = 'http://busapi.gpsoo.net/v1/bus/mbcommonservice?method=getnearcarinfo&\
-sublineID=%s&mapType=BAIDU_MAP&stationId=%s&ids=' % (sublineid , sid)
+sublineID=%s&mapType=BAIDU_MAP&stationId=%s&ids=' % (sublineid , stationid)
     #print url
     req = urllib2.Request(url=url)
     string = urllib2.urlopen(req , timeout = 10).read()
     resp = json.loads(string)
-    return name , resp['data']
+    return resp['data']
 
